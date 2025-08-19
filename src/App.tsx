@@ -87,9 +87,9 @@ const useUserInfo = () => {
   return { userIP, location, isp };
 };
 
-// Hook para generar reporte PDF profesional
+// Hook para generar reporte HTML (sin dependencias externas)
 const useReportGenerator = () => {
-  const generatePDFReport = useCallback(async (testResults: {
+  const generateHTMLReport = useCallback((testResults: {
     downloadSpeed: number;
     uploadSpeed: number;
     ping: number;
@@ -97,130 +97,9 @@ const useReportGenerator = () => {
     location: string;
     isp: string;
   }) => {
-    // Importar jsPDF dinámicamente
-    const { jsPDF } = await import('jspdf');
-    
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    
-    // Colores corporativos
-    const primaryColor = '#00ff87';
-    const secondaryColor = '#60efff';
-    const darkColor = '#1a1a2e';
-    const grayColor = '#64748b';
-    
-    // Header con gradiente simulado
-    doc.setFillColor(26, 26, 46);
-    doc.rect(0, 0, pageWidth, 50, 'F');
-    
-    // Título principal
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont(undefined, 'bold');
-    doc.text('SpeedTest Ultra', 20, 25);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    doc.text('Reporte de Velocidad de Internet', 20, 35);
-    
-    // Fecha y hora
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-ES');
     const timeStr = now.toLocaleTimeString('es-ES');
-    doc.setFontSize(10);
-    doc.text(`Generado: ${dateStr} - ${timeStr}`, pageWidth - 60, 25);
-    
-    // Línea separadora
-    doc.setDrawColor(0, 255, 135);
-    doc.setLineWidth(2);
-    doc.line(20, 55, pageWidth - 20, 55);
-    
-    // Sección de resultados principales
-    let yPos = 75;
-    
-    doc.setTextColor(26, 26, 46);
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text('Resultados de la Prueba', 20, yPos);
-    
-    yPos += 20;
-    
-    // Crear cajas para cada métrica
-    const boxWidth = (pageWidth - 60) / 3;
-    const boxHeight = 40;
-    const boxSpacing = 10;
-    
-    // Descarga
-    doc.setFillColor(16, 185, 129, 0.1);
-    doc.setDrawColor(16, 185, 129);
-    doc.setLineWidth(1);
-    doc.rect(20, yPos, boxWidth, boxHeight, 'FD');
-    
-    doc.setTextColor(16, 185, 129);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('DESCARGA', 25, yPos + 15);
-    
-    doc.setFontSize(20);
-    doc.text(`${testResults.downloadSpeed} Mbps`, 25, yPos + 30);
-    
-    // Subida
-    const subidaX = 20 + boxWidth + boxSpacing;
-    doc.setFillColor(96, 239, 255, 0.1);
-    doc.setDrawColor(96, 239, 255);
-    doc.rect(subidaX, yPos, boxWidth, boxHeight, 'FD');
-    
-    doc.setTextColor(96, 239, 255);
-    doc.text('SUBIDA', subidaX + 5, yPos + 15);
-    doc.text(`${testResults.uploadSpeed} Mbps`, subidaX + 5, yPos + 30);
-    
-    // Ping
-    const pingX = 20 + (boxWidth + boxSpacing) * 2;
-    doc.setFillColor(255, 107, 0, 0.1);
-    doc.setDrawColor(255, 107, 0);
-    doc.rect(pingX, yPos, boxWidth, boxHeight, 'FD');
-    
-    doc.setTextColor(255, 107, 0);
-    doc.text('LATENCIA', pingX + 5, yPos + 15);
-    doc.text(`${testResults.ping} ms`, pingX + 5, yPos + 30);
-    
-    yPos += 60;
-    
-    // Información técnica
-    doc.setTextColor(26, 26, 46);
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('Información Técnica', 20, yPos);
-    
-    yPos += 15;
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(100, 116, 139);
-    
-    const technicalInfo = [
-      `IP Pública: ${testResults.userIP}`,
-      `Ubicación: ${testResults.location}`,
-      `Proveedor (ISP): ${testResults.isp}`,
-      `Método de Medición: Cloudflare Infrastructure`,
-      `Protocolo: HTTPS/REST APIs`,
-      `Servidores: Múltiples endpoints globales`
-    ];
-    
-    technicalInfo.forEach((info, index) => {
-      doc.text(`• ${info}`, 25, yPos + (index * 8));
-    });
-    
-    yPos += technicalInfo.length * 8 + 20;
-    
-    // Análisis de velocidad
-    doc.setTextColor(26, 26, 46);
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('Análisis de Rendimiento', 20, yPos);
-    
-    yPos += 15;
     
     // Determinar calidad de conexión
     const getSpeedQuality = (speed: number, type: 'download' | 'upload') => {
@@ -240,51 +119,320 @@ const useReportGenerator = () => {
     const downloadQuality = getSpeedQuality(testResults.downloadSpeed, 'download');
     const uploadQuality = getSpeedQuality(testResults.uploadSpeed, 'upload');
     
-    doc.setFontSize(11);
-    doc.setTextColor(100, 116, 139);
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeedTest Ultra - Reporte de Velocidad</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #333; 
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 40px 20px;
+            background: white;
+            min-height: 100vh;
+        }
+        .header { 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+            margin: -40px -20px 40px -20px;
+            border-radius: 0 0 20px 20px;
+        }
+        .header h1 { 
+            font-size: 2.5rem; 
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header .subtitle { 
+            font-size: 1.1rem; 
+            opacity: 0.9; 
+        }
+        .timestamp { 
+            text-align: right; 
+            color: #666; 
+            margin-bottom: 30px; 
+            font-size: 0.9rem;
+        }
+        .results-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 20px; 
+            margin-bottom: 40px;
+        }
+        .result-card { 
+            padding: 20px; 
+            border-radius: 15px; 
+            text-align: center;
+            border: 2px solid;
+            position: relative;
+            overflow: hidden;
+        }
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: currentColor;
+        }
+        .download { border-color: #10b981; color: #10b981; }
+        .upload { border-color: #60efff; color: #60efff; }
+        .ping { border-color: #ff6b00; color: #ff6b00; }
+        .result-card h3 { 
+            font-size: 0.9rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        .result-card .value { 
+            font-size: 2.2rem; 
+            font-weight: bold; 
+            margin-bottom: 5px;
+        }
+        .result-card .unit { 
+            font-size: 0.8rem; 
+            opacity: 0.7;
+        }
+        .section { 
+            margin-bottom: 30px; 
+        }
+        .section h2 { 
+            color: #1a1a2e; 
+            margin-bottom: 15px; 
+            padding-bottom: 8px;
+            border-bottom: 2px solid #00ff87;
+            display: inline-block;
+        }
+        .info-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 15px;
+        }
+        .info-item { 
+            background: #f8fafc; 
+            padding: 15px; 
+            border-radius: 10px;
+            border-left: 4px solid #00ff87;
+        }
+        .info-item strong { 
+            color: #1a1a2e; 
+        }
+        .analysis-item { 
+            background: #f8fafc; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 10px;
+            border-left: 4px solid;
+        }
+        .excellent { border-left-color: #10b981; }
+        .good { border-left-color: #3b82f6; }
+        .fair { border-left-color: #f59e0b; }
+        .poor { border-left-color: #ef4444; }
+        .recommendations { 
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+            padding: 20px; 
+            border-radius: 15px;
+            border: 1px solid #0ea5e9;
+        }
+        .recommendations h3 { 
+            color: #0c4a6e; 
+            margin-bottom: 15px;
+        }
+        .rec-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 10px;
+        }
+        .rec-item { 
+            padding: 10px; 
+            background: white; 
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .optimal { color: #059669; }
+        .limited { color: #dc2626; }
+        .footer { 
+            text-align: center; 
+            color: #666; 
+            font-size: 0.8rem; 
+            margin-top: 40px; 
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .developer { 
+            color: #00ff87; 
+            font-weight: bold;
+        }
+        @media print {
+            body { background: white !important; }
+            .container { box-shadow: none; }
+            .no-print { display: none; }
+        }
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn no-print" onclick="window.print()">📄 Imprimir PDF</button>
     
-    const analysis = [
-      `Calidad de Descarga: ${downloadQuality.quality}`,
-      `Calidad de Subida: ${uploadQuality.quality}`,
-      `Latencia: ${testResults.ping < 50 ? 'Excelente' : testResults.ping < 100 ? 'Buena' : 'Regular'}`,
-      '',
-      'Recomendaciones de uso:',
-      `• Streaming HD: ${testResults.downloadSpeed >= 25 ? 'Óptimo' : 'Limitado'}`,
-      `• Videollamadas: ${testResults.uploadSpeed >= 5 ? 'Óptimo' : 'Limitado'}`,
-      `• Gaming Online: ${testResults.ping < 100 ? 'Óptimo' : 'Limitado'}`,
-      `• Trabajo Remoto: ${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'Óptimo' : 'Limitado'}`
-    ];
-    
-    analysis.forEach((line, index) => {
-      if (line.startsWith('•')) {
-        doc.text(line, 30, yPos + (index * 6));
-      } else if (line === '') {
-        // Espacio en blanco
-      } else {
-        doc.text(line, 25, yPos + (index * 6));
-      }
-    });
-    
-    // Footer
-    const footerY = pageHeight - 30;
-    doc.setDrawColor(0, 255, 135);
-    doc.setLineWidth(1);
-    doc.line(20, footerY - 5, pageWidth - 20, footerY - 5);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text('SpeedTest Ultra - Desarrollado por Raul Jaime Pivet', 20, footerY);
-    doc.text('Herramienta de medición profesional con React + TypeScript', 20, footerY + 8);
-    doc.text(`GitHub: github.com/Sinsapiar1/Testdevelocidad`, pageWidth - 80, footerY);
-    
-    // Guardar PDF
-    const fileName = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.pdf`;
-    doc.save(fileName);
-    
-    return fileName;
+    <div class="container">
+        <div class="header">
+            <h1>SpeedTest Ultra</h1>
+            <p class="subtitle">Reporte Profesional de Velocidad de Internet</p>
+        </div>
+        
+        <div class="timestamp">
+            Generado el ${dateStr} a las ${timeStr}
+        </div>
+        
+        <div class="section">
+            <h2>Resultados de la Prueba</h2>
+            <div class="results-grid">
+                <div class="result-card download">
+                    <h3>Descarga</h3>
+                    <div class="value">${testResults.downloadSpeed}</div>
+                    <div class="unit">Mbps</div>
+                </div>
+                <div class="result-card upload">
+                    <h3>Subida</h3>
+                    <div class="value">${testResults.uploadSpeed}</div>
+                    <div class="unit">Mbps</div>
+                </div>
+                <div class="result-card ping">
+                    <h3>Latencia</h3>
+                    <div class="value">${testResults.ping}</div>
+                    <div class="unit">ms</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Información Técnica</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>IP Pública:</strong> ${testResults.userIP}
+                </div>
+                <div class="info-item">
+                    <strong>Ubicación:</strong> ${testResults.location}
+                </div>
+                <div class="info-item">
+                    <strong>Proveedor (ISP):</strong> ${testResults.isp}
+                </div>
+                <div class="info-item">
+                    <strong>Método:</strong> Cloudflare Infrastructure
+                </div>
+                <div class="info-item">
+                    <strong>Protocolo:</strong> HTTPS/REST APIs
+                </div>
+                <div class="info-item">
+                    <strong>Servidores:</strong> Endpoints globales
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Análisis de Rendimiento</h2>
+            <div class="analysis-item ${downloadQuality.quality === 'Excelente' ? 'excellent' : downloadQuality.quality === 'Muy Buena' ? 'good' : downloadQuality.quality === 'Buena' ? 'fair' : 'poor'}">
+                <strong>Calidad de Descarga:</strong> ${downloadQuality.quality}
+            </div>
+            <div class="analysis-item ${uploadQuality.quality === 'Excelente' ? 'excellent' : uploadQuality.quality === 'Muy Buena' ? 'good' : uploadQuality.quality === 'Buena' ? 'fair' : 'poor'}">
+                <strong>Calidad de Subida:</strong> ${uploadQuality.quality}
+            </div>
+            <div class="analysis-item ${testResults.ping < 50 ? 'excellent' : testResults.ping < 100 ? 'good' : 'poor'}">
+                <strong>Latencia:</strong> ${testResults.ping < 50 ? 'Excelente' : testResults.ping < 100 ? 'Buena' : 'Regular'}
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="recommendations">
+                <h3>🎯 Recomendaciones de Uso</h3>
+                <div class="rec-grid">
+                    <div class="rec-item">
+                        <strong>Streaming HD:</strong> 
+                        <span class="${testResults.downloadSpeed >= 25 ? 'optimal' : 'limited'}">
+                            ${testResults.downloadSpeed >= 25 ? 'Óptimo' : 'Limitado'}
+                        </span>
+                    </div>
+                    <div class="rec-item">
+                        <strong>Videollamadas:</strong> 
+                        <span class="${testResults.uploadSpeed >= 5 ? 'optimal' : 'limited'}">
+                            ${testResults.uploadSpeed >= 5 ? 'Óptimo' : 'Limitado'}
+                        </span>
+                    </div>
+                    <div class="rec-item">
+                        <strong>Gaming Online:</strong> 
+                        <span class="${testResults.ping < 100 ? 'optimal' : 'limited'}">
+                            ${testResults.ping < 100 ? 'Óptimo' : 'Limitado'}
+                        </span>
+                    </div>
+                    <div class="rec-item">
+                        <strong>Trabajo Remoto:</strong> 
+                        <span class="${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'optimal' : 'limited'}">
+                            ${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'Óptimo' : 'Limitado'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>SpeedTest Ultra</strong> - Desarrollado por <span class="developer">Raul Jaime Pivet</span></p>
+            <p>Herramienta profesional con React + TypeScript | GitHub: github.com/Sinsapiar1/Testdevelocidad</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    // Abrir reporte en nueva ventana
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      
+      // Enfocar la nueva ventana
+      newWindow.focus();
+      
+      return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
+    } else {
+      throw new Error('No se pudo abrir la ventana del reporte');
+    }
   }, []);
   
-  return { generatePDFReport };
+  return { generatePDFReport: generateHTMLReport };
 };
 
 // Hook personalizado para el test de velocidad REAL
