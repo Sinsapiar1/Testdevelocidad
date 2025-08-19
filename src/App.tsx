@@ -370,21 +370,20 @@ const useReportGenerator = () => {
     </body>
     </html>`;
 
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      return a.download;
+    // En móviles, abrir en nueva pestaña para mejor compatibilidad (iOS/Android)
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice) {
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+        newWindow.focus();
+        return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
+      }
+      throw new Error('No se pudo abrir la ventana del reporte');
     }
 
+    // Escritorio: también abrir en nueva pestaña
     const newWindow = window.open('', '_blank');
     if (newWindow) {
       newWindow.document.write(htmlContent);
