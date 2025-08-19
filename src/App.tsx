@@ -96,29 +96,27 @@ const useReportGenerator = () => {
     userIP: string;
     location: string;
     isp: string;
-  }) => {
+  }, targetWindow?: Window | null) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-ES');
     const timeStr = now.toLocaleTimeString('es-ES');
-    
-    // Determinar calidad de conexión
+
     const getSpeedQuality = (speed: number, type: 'download' | 'upload') => {
       if (type === 'download') {
         if (speed >= 100) return { quality: 'Excelente', color: '#10b981' };
         if (speed >= 50) return { quality: 'Muy Buena', color: '#3b82f6' };
         if (speed >= 25) return { quality: 'Buena', color: '#f59e0b' };
         return { quality: 'Regular', color: '#ef4444' };
-      } else {
-        if (speed >= 50) return { quality: 'Excelente', color: '#10b981' };
-        if (speed >= 25) return { quality: 'Muy Buena', color: '#3b82f6' };
-        if (speed >= 10) return { quality: 'Buena', color: '#f59e0b' };
-        return { quality: 'Regular', color: '#ef4444' };
       }
+      if (speed >= 50) return { quality: 'Excelente', color: '#10b981' };
+      if (speed >= 25) return { quality: 'Muy Buena', color: '#3b82f6' };
+      if (speed >= 10) return { quality: 'Buena', color: '#f59e0b' };
+      return { quality: 'Regular', color: '#ef4444' };
     };
-    
+
     const downloadQuality = getSpeedQuality(testResults.downloadSpeed, 'download');
     const uploadQuality = getSpeedQuality(testResults.uploadSpeed, 'upload');
-    
+
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
@@ -305,166 +303,151 @@ const useReportGenerator = () => {
             box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
         }
     </style>
-</head>
-<body>
-    <button class="print-btn no-print" onclick="window.print()">📄 Imprimir PDF</button>
-    
-    <div class="container">
+    </head>
+    <body>
+      <button class="print-btn no-print" onclick="window.print()">📄 Imprimir PDF</button>
+      <div class="container">
         <div class="header">
-            <h1>SpeedTest Ultra</h1>
-            <p class="subtitle">Reporte Profesional de Velocidad de Internet</p>
+          <h1>SpeedTest Ultra</h1>
+          <p class="subtitle">Reporte Profesional de Velocidad de Internet</p>
         </div>
-        
         <div class="timestamp">
-            Generado el ${dateStr} a las ${timeStr}
+          Generado el ${dateStr} a las ${timeStr}
         </div>
-        
         <div class="section">
-            <h2>Resultados de la Prueba</h2>
-            <div class="results-grid">
-                <div class="result-card download">
-                    <h3>Descarga</h3>
-                    <div class="value">${testResults.downloadSpeed}</div>
-                    <div class="unit">Mbps</div>
-                </div>
-                <div class="result-card upload">
-                    <h3>Subida</h3>
-                    <div class="value">${testResults.uploadSpeed}</div>
-                    <div class="unit">Mbps</div>
-                </div>
-                <div class="result-card ping">
-                    <h3>Latencia</h3>
-                    <div class="value">${testResults.ping}</div>
-                    <div class="unit">ms</div>
-                </div>
+          <h2>Resultados de la Prueba</h2>
+          <div class="results-grid">
+            <div class="result-card download">
+              <h3>Descarga</h3>
+              <div class="value">${testResults.downloadSpeed}</div>
+              <div class="unit">Mbps</div>
             </div>
+            <div class="result-card upload">
+              <h3>Subida</h3>
+              <div class="value">${testResults.uploadSpeed}</div>
+              <div class="unit">Mbps</div>
+            </div>
+            <div class="result-card ping">
+              <h3>Latencia</h3>
+              <div class="value">${testResults.ping}</div>
+              <div class="unit">ms</div>
+            </div>
+          </div>
         </div>
-        
         <div class="section">
-            <h2>Información Técnica</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <strong>IP Pública:</strong> ${testResults.userIP}
-                </div>
-                <div class="info-item">
-                    <strong>Ubicación:</strong> ${testResults.location}
-                </div>
-                <div class="info-item">
-                    <strong>Proveedor (ISP):</strong> ${testResults.isp}
-                </div>
-                <div class="info-item">
-                    <strong>Método:</strong> Cloudflare Infrastructure
-                </div>
-                <div class="info-item">
-                    <strong>Protocolo:</strong> HTTPS/REST APIs
-                </div>
-                <div class="info-item">
-                    <strong>Servidores:</strong> Endpoints globales
-                </div>
-            </div>
+          <h2>Información Técnica</h2>
+          <div class="info-grid">
+            <div class="info-item"><strong>IP Pública:</strong> ${testResults.userIP}</div>
+            <div class="info-item"><strong>Ubicación:</strong> ${testResults.location}</div>
+            <div class="info-item"><strong>Proveedor (ISP):</strong> ${testResults.isp}</div>
+            <div class="info-item"><strong>Método:</strong> Cloudflare Infrastructure</div>
+            <div class="info-item"><strong>Protocolo:</strong> HTTPS/REST APIs</div>
+            <div class="info-item"><strong>Servidores:</strong> Endpoints globales</div>
+          </div>
         </div>
-        
         <div class="section">
-            <h2>Análisis de Rendimiento</h2>
-            <div class="analysis-item ${downloadQuality.quality === 'Excelente' ? 'excellent' : downloadQuality.quality === 'Muy Buena' ? 'good' : downloadQuality.quality === 'Buena' ? 'fair' : 'poor'}">
-                <strong>Calidad de Descarga:</strong> ${downloadQuality.quality}
-            </div>
-            <div class="analysis-item ${uploadQuality.quality === 'Excelente' ? 'excellent' : uploadQuality.quality === 'Muy Buena' ? 'good' : uploadQuality.quality === 'Buena' ? 'fair' : 'poor'}">
-                <strong>Calidad de Subida:</strong> ${uploadQuality.quality}
-            </div>
-            <div class="analysis-item ${testResults.ping < 50 ? 'excellent' : testResults.ping < 100 ? 'good' : 'poor'}">
-                <strong>Latencia:</strong> ${testResults.ping < 50 ? 'Excelente' : testResults.ping < 100 ? 'Buena' : 'Regular'}
-            </div>
+          <h2>Análisis de Rendimiento</h2>
+          <div class="analysis-item ${downloadQuality.quality === 'Excelente' ? 'excellent' : downloadQuality.quality === 'Muy Buena' ? 'good' : downloadQuality.quality === 'Buena' ? 'fair' : 'poor'}"><strong>Calidad de Descarga:</strong> ${downloadQuality.quality}</div>
+          <div class="analysis-item ${uploadQuality.quality === 'Excelente' ? 'excellent' : uploadQuality.quality === 'Muy Buena' ? 'good' : uploadQuality.quality === 'Buena' ? 'fair' : 'poor'}"><strong>Calidad de Subida:</strong> ${uploadQuality.quality}</div>
+          <div class="analysis-item ${testResults.ping < 50 ? 'excellent' : testResults.ping < 100 ? 'good' : 'poor'}"><strong>Latencia:</strong> ${testResults.ping < 50 ? 'Excelente' : testResults.ping < 100 ? 'Buena' : 'Regular'}</div>
         </div>
-        
         <div class="section">
-            <div class="recommendations">
-                <h3>🎯 Recomendaciones de Uso</h3>
-                <div class="rec-grid">
-                    <div class="rec-item">
-                        <strong>Streaming HD:</strong> 
-                        <span class="${testResults.downloadSpeed >= 25 ? 'optimal' : 'limited'}">
-                            ${testResults.downloadSpeed >= 25 ? 'Óptimo' : 'Limitado'}
-                        </span>
-                    </div>
-                    <div class="rec-item">
-                        <strong>Videollamadas:</strong> 
-                        <span class="${testResults.uploadSpeed >= 5 ? 'optimal' : 'limited'}">
-                            ${testResults.uploadSpeed >= 5 ? 'Óptimo' : 'Limitado'}
-                        </span>
-                    </div>
-                    <div class="rec-item">
-                        <strong>Gaming Online:</strong> 
-                        <span class="${testResults.ping < 100 ? 'optimal' : 'limited'}">
-                            ${testResults.ping < 100 ? 'Óptimo' : 'Limitado'}
-                        </span>
-                    </div>
-                    <div class="rec-item">
-                        <strong>Trabajo Remoto:</strong> 
-                        <span class="${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'optimal' : 'limited'}">
-                            ${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'Óptimo' : 'Limitado'}
-                        </span>
-                    </div>
-                </div>
+          <div class="recommendations">
+            <h3>🎯 Recomendaciones de Uso</h3>
+            <div class="rec-grid">
+              <div class="rec-item"><strong>Streaming HD:</strong> <span class="${testResults.downloadSpeed >= 25 ? 'optimal' : 'limited'}">${testResults.downloadSpeed >= 25 ? 'Óptimo' : 'Limitado'}</span></div>
+              <div class="rec-item"><strong>Videollamadas:</strong> <span class="${testResults.uploadSpeed >= 5 ? 'optimal' : 'limited'}">${testResults.uploadSpeed >= 5 ? 'Óptimo' : 'Limitado'}</span></div>
+              <div class="rec-item"><strong>Gaming Online:</strong> <span class="${testResults.ping < 100 ? 'optimal' : 'limited'}">${testResults.ping < 100 ? 'Óptimo' : 'Limitado'}</span></div>
+              <div class="rec-item"><strong>Trabajo Remoto:</strong> <span class="${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'optimal' : 'limited'}">${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'Óptimo' : 'Limitado'}</span></div>
             </div>
+          </div>
         </div>
-        
         <div class="footer">
-            <p><strong>SpeedTest Ultra</strong> - Desarrollado por <span class="developer">Raul Jaime Pivet</span></p>
-            <p>Herramienta profesional con React + TypeScript | GitHub: github.com/Sinsapiar1/Testdevelocidad</p>
+          <p><strong>SpeedTest Ultra</strong> - Desarrollado por <span class="developer">Raul Jaime Pivet</span></p>
+          <p>Herramienta profesional con React + TypeScript | GitHub: github.com/Sinsapiar1/Testdevelocidad</p>
         </div>
-    </div>
-</body>
-</html>`;
+      </div>
+    </body>
+    </html>`;
 
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // MÓVIL: Descarga directa del archivo
+    const fileName = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Intentar usar la ventana pre-abierta mediante navegación por Blob URL
+    const useWindowBlobNav = (win: Window | null) => {
+      if (!win) return false;
+      try {
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        win.location.href = url;
+        // Revocar luego de un tiempo para no romper la navegación inmediata
+        setTimeout(() => {
+          try { URL.revokeObjectURL(url); } catch {}
+        }, 30000);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // Alternativa: escribir documento directamente
+    const useWindowDocWrite = (win: Window | null) => {
+      if (!win) return false;
+      try {
+        win.document.open();
+        win.document.write(htmlContent);
+        win.document.close();
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // Si tenemos ventana pre-abierta, usarla primero (Blob URL más fiable que document.write)
+    if (useWindowBlobNav(targetWindow || null) || useWindowDocWrite(targetWindow || null)) {
+      return fileName;
+    }
+
+    // En móviles, preferir navegar en la misma pestaña para asegurar visibilidad
+    if (isMobileDevice) {
+      try {
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
+        window.location.href = dataUrl;
+        return fileName;
+      } catch {}
+      try {
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        window.location.href = url;
+        setTimeout(() => {
+          try { URL.revokeObjectURL(url); } catch {}
+        }, 30000);
+        return fileName;
+      } catch {}
+    }
+
+    // Escritorio: abrir nueva pestaña y usar Blob URL; si falla, document.write
+    const newWindow = window.open('', '_blank');
+    if (useWindowBlobNav(newWindow) || useWindowDocWrite(newWindow)) return fileName;
+
+    // Último recurso: descarga por Blob (más fiable en Android/Chrome)
+    try {
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      
       const a = document.createElement('a');
       a.href = url;
-      a.download = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
+      a.download = fileName;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      return a.download;
-    } else {
-      // ESCRITORIO: Ventana nueva (como antes)
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(htmlContent);
-        newWindow.document.close();
-        newWindow.focus();
-        return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
-      } else {
-        throw new Error('No se pudo abrir la ventana del reporte');
-      }
-    }
-  }, []);
-  
-    
+      return fileName;
+    } catch {}
 
-    // Abrir reporte en nueva ventana
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-      
-      // Enfocar la nueva ventana
-      newWindow.focus();
-      
-      return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
-    } else {
-      throw new Error('No se pudo abrir la ventana del reporte');
-    }
+    throw new Error('No se pudo generar o abrir el reporte en este dispositivo');
   }, []);
-  
+
   return { generatePDFReport: generateHTMLReport };
 };
 
@@ -878,38 +861,28 @@ const UltraPremiumSpeedTest: React.FC = () => {
   const isAnyTestRunning = isTestingDownload || isTestingUpload || isTestingPing;
 
   // Función para exportar reporte
-      const handleExportReport = async () => {
-      if (downloadSpeed === 0 && uploadSpeed === 0 && ping === 0) {
-        alert('Ejecuta primero un test de velocidad para generar el reporte');
-        return;
-      }
-    
-      try {
-        const fileName = await generatePDFReport({
-          downloadSpeed,
-          uploadSpeed,
-          ping,
-          userIP,
-          location,
-          isp
-        });
-        
-        // Detectar dispositivo para mensaje apropiado
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-          alert(`📱 Reporte descargado: ${fileName}\nBusca el archivo en tu carpeta de Descargas`);
-        } else {
-          alert(`💻 Reporte generado exitosamente: ${fileName}`);
-        }
-      } catch (error) {
-        console.error('Error generando reporte:', error);
-        alert('Error al generar el reporte. Intenta nuevamente.');
-      }
-    };
-      
-      // Mostrar notificación de éxito
-      alert(`Reporte generado exitosamente: ${fileName}`);
+  const handleExportReport = async () => {
+    if (downloadSpeed === 0 && uploadSpeed === 0 && ping === 0) {
+      alert('Ejecuta primero un test de velocidad para generar el reporte');
+      return;
+    }
+    try {
+      // Pre-abrir ventana inmediatamente (gesto de usuario) para evitar bloqueo de popups en móviles
+      const preOpened = window.open('', '_blank');
+      const fileName = await generatePDFReport({
+        downloadSpeed,
+        uploadSpeed,
+        ping,
+        userIP,
+        location,
+        isp
+      }, preOpened);
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const successMsg = isMobile
+        ? `📱 Reporte generado: ${fileName}\nSi ves una pantalla en blanco, vuelve atrás o cambia de pestaña y regresa; algunos navegadores demoran en renderizar el HTML.`
+        : `💻 Reporte generado exitosamente: ${fileName}`;
+      // Mostrar aviso con un pequeño retraso para evitar interferir con el render inicial en móviles
+      setTimeout(() => alert(successMsg), 300);
     } catch (error) {
       console.error('Error generando reporte:', error);
       alert('Error al generar el reporte. Intenta nuevamente.');
