@@ -161,6 +161,8 @@ const useSpeedTest = (): SpeedTestState => {
             const { done, value } = await reader.read();
             if (done) break;
             
+            if (!value) continue; // Verificación adicional para TypeScript
+            
             receivedLength += value.length;
             
             // Calcular velocidad en tiempo real
