@@ -417,6 +417,39 @@ const useReportGenerator = () => {
 </body>
 </html>`;
 
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // MÓVIL: Descarga directa del archivo
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      return a.download;
+    } else {
+      // ESCRITORIO: Ventana nueva (como antes)
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+        newWindow.focus();
+        return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
+      } else {
+        throw new Error('No se pudo abrir la ventana del reporte');
+      }
+    }
+  }, []);
+  
+    
+
     // Abrir reporte en nueva ventana
     const newWindow = window.open('', '_blank');
     if (newWindow) {
@@ -845,21 +878,35 @@ const UltraPremiumSpeedTest: React.FC = () => {
   const isAnyTestRunning = isTestingDownload || isTestingUpload || isTestingPing;
 
   // Función para exportar reporte
-  const handleExportReport = async () => {
-    if (downloadSpeed === 0 && uploadSpeed === 0 && ping === 0) {
-      alert('Ejecuta primero un test de velocidad para generar el reporte');
-      return;
-    }
-
-    try {
-      const fileName = await generatePDFReport({
-        downloadSpeed,
-        uploadSpeed,
-        ping,
-        userIP,
-        location,
-        isp
-      });
+      const handleExportReport = async () => {
+      if (downloadSpeed === 0 && uploadSpeed === 0 && ping === 0) {
+        alert('Ejecuta primero un test de velocidad para generar el reporte');
+        return;
+      }
+    
+      try {
+        const fileName = await generatePDFReport({
+          downloadSpeed,
+          uploadSpeed,
+          ping,
+          userIP,
+          location,
+          isp
+        });
+        
+        // Detectar dispositivo para mensaje apropiado
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          alert(`📱 Reporte descargado: ${fileName}\nBusca el archivo en tu carpeta de Descargas`);
+        } else {
+          alert(`💻 Reporte generado exitosamente: ${fileName}`);
+        }
+      } catch (error) {
+        console.error('Error generando reporte:', error);
+        alert('Error al generar el reporte. Intenta nuevamente.');
+      }
+    };
       
       // Mostrar notificación de éxito
       alert(`Reporte generado exitosamente: ${fileName}`);
