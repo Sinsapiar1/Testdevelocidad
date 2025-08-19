@@ -96,7 +96,7 @@ const useReportGenerator = () => {
     userIP: string;
     location: string;
     isp: string;
-  }) => {
+  }, targetWindow?: Window | null) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-ES');
     const timeStr = now.toLocaleTimeString('es-ES');
@@ -370,28 +370,53 @@ const useReportGenerator = () => {
     </body>
     </html>`;
 
-    // En móviles, abrir en nueva pestaña para mejor compatibilidad (iOS/Android)
+    const fileName = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobileDevice) {
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(htmlContent);
-        newWindow.document.close();
-        newWindow.focus();
-        return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
-      }
-      throw new Error('No se pudo abrir la ventana del reporte');
-    }
 
-    // Escritorio: también abrir en nueva pestaña
+    // Intentar usar la ventana pre-abierta (mantiene el gesto de usuario)
+    const useWindow = (win: Window | null) => {
+      if (!win) return false;
+      try {
+        win.document.write(htmlContent);
+        win.document.close();
+        win.focus();
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (useWindow(targetWindow || null)) return fileName;
+
+    // Si no hay ventana pre-abierta, probar a abrir una nueva inmediatamente
     const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-      newWindow.focus();
-      return `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
-    }
-    throw new Error('No se pudo abrir la ventana del reporte');
+    if (useWindow(newWindow)) return fileName;
+
+    // Fallback 1: navegar a data URL (suele funcionar en iOS/Android)
+    try {
+      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
+      if (isMobileDevice) {
+        window.location.href = dataUrl;
+        return fileName;
+      }
+    } catch {}
+
+    // Fallback 2: descarga por Blob (más fiable en Android/Chrome)
+    try {
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return fileName;
+    } catch {}
+
+    throw new Error('No se pudo generar o abrir el reporte en este dispositivo');
   }, []);
 
   return { generatePDFReport: generateHTMLReport };
@@ -813,6 +838,8 @@ const UltraPremiumSpeedTest: React.FC = () => {
       return;
     }
     try {
+      // Pre-abrir ventana inmediatamente (gesto de usuario) para evitar bloqueo de popups en móviles
+      const preOpened = window.open('', '_blank');
       const fileName = await generatePDFReport({
         downloadSpeed,
         uploadSpeed,
@@ -820,13 +847,12 @@ const UltraPremiumSpeedTest: React.FC = () => {
         userIP,
         location,
         isp
-      });
+      }, preOpened);
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile) {
-        alert(`📱 Reporte descargado: ${fileName}\nBusca el archivo en tu carpeta de Descargas`);
-      } else {
-        alert(`💻 Reporte generado exitosamente: ${fileName}`);
-      }
+      const successMsg = isMobile
+        ? `📱 Reporte abierto/descargado: ${fileName}\nSi no se abrió automáticamente, revisa descargas o permite ventanas emergentes.`
+        : `💻 Reporte generado exitosamente: ${fileName}`;
+      alert(successMsg);
     } catch (error) {
       console.error('Error generando reporte:', error);
       alert('Error al generar el reporte. Intenta nuevamente.');
