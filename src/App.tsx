@@ -1182,7 +1182,32 @@ const UltraPremiumSpeedTest: React.FC = () => {
                   'INICIAR ANÁLISIS COMPLETO'
                 )}
               </span>
-            </button>
+              </button>
+              
+              {/* Botón de exportación - AGREGAR ESTO */}
+              {(downloadSpeed > 0 || uploadSpeed > 0 || ping > 0) && !isAnyTestRunning && (
+                <button
+                  onClick={handleExportReport}
+                  style={{
+                    padding: isMobile ? '16px 24px' : '20px 32px',
+                    borderRadius: '20px',
+                    fontSize: isMobile ? '0.875rem' : '1rem',
+                    fontWeight: '600',
+                    border: '2px solid rgba(139, 92, 246, 0.3)',
+                    cursor: 'pointer',
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)',
+                    color: '#a855f7',
+                    boxShadow: '0 10px 25px rgba(139, 92, 246, 0.2)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    backdropFilter: 'blur(10px)',
+                    marginLeft: isMobile ? '0' : '16px',
+                    marginTop: isMobile ? '16px' : '0'
+                  }}
+                >
+                  📄 Exportar Reporte
+                </button>
+              )}
           </div>
         </div>
 
