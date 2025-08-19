@@ -87,6 +87,206 @@ const useUserInfo = () => {
   return { userIP, location, isp };
 };
 
+// Hook para generar reporte PDF profesional
+const useReportGenerator = () => {
+  const generatePDFReport = useCallback(async (testResults: {
+    downloadSpeed: number;
+    uploadSpeed: number;
+    ping: number;
+    userIP: string;
+    location: string;
+    isp: string;
+  }) => {
+    // Importar jsPDF dinámicamente
+    const { jsPDF } = await import('jspdf');
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    
+    // Colores corporativos
+    const primaryColor = '#00ff87';
+    const secondaryColor = '#60efff';
+    const darkColor = '#1a1a2e';
+    const grayColor = '#64748b';
+    
+    // Header con gradiente simulado
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+    
+    // Título principal
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont(undefined, 'bold');
+    doc.text('SpeedTest Ultra', 20, 25);
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text('Reporte de Velocidad de Internet', 20, 35);
+    
+    // Fecha y hora
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES');
+    const timeStr = now.toLocaleTimeString('es-ES');
+    doc.setFontSize(10);
+    doc.text(`Generado: ${dateStr} - ${timeStr}`, pageWidth - 60, 25);
+    
+    // Línea separadora
+    doc.setDrawColor(0, 255, 135);
+    doc.setLineWidth(2);
+    doc.line(20, 55, pageWidth - 20, 55);
+    
+    // Sección de resultados principales
+    let yPos = 75;
+    
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('Resultados de la Prueba', 20, yPos);
+    
+    yPos += 20;
+    
+    // Crear cajas para cada métrica
+    const boxWidth = (pageWidth - 60) / 3;
+    const boxHeight = 40;
+    const boxSpacing = 10;
+    
+    // Descarga
+    doc.setFillColor(16, 185, 129, 0.1);
+    doc.setDrawColor(16, 185, 129);
+    doc.setLineWidth(1);
+    doc.rect(20, yPos, boxWidth, boxHeight, 'FD');
+    
+    doc.setTextColor(16, 185, 129);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('DESCARGA', 25, yPos + 15);
+    
+    doc.setFontSize(20);
+    doc.text(`${testResults.downloadSpeed} Mbps`, 25, yPos + 30);
+    
+    // Subida
+    const subidaX = 20 + boxWidth + boxSpacing;
+    doc.setFillColor(96, 239, 255, 0.1);
+    doc.setDrawColor(96, 239, 255);
+    doc.rect(subidaX, yPos, boxWidth, boxHeight, 'FD');
+    
+    doc.setTextColor(96, 239, 255);
+    doc.text('SUBIDA', subidaX + 5, yPos + 15);
+    doc.text(`${testResults.uploadSpeed} Mbps`, subidaX + 5, yPos + 30);
+    
+    // Ping
+    const pingX = 20 + (boxWidth + boxSpacing) * 2;
+    doc.setFillColor(255, 107, 0, 0.1);
+    doc.setDrawColor(255, 107, 0);
+    doc.rect(pingX, yPos, boxWidth, boxHeight, 'FD');
+    
+    doc.setTextColor(255, 107, 0);
+    doc.text('LATENCIA', pingX + 5, yPos + 15);
+    doc.text(`${testResults.ping} ms`, pingX + 5, yPos + 30);
+    
+    yPos += 60;
+    
+    // Información técnica
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Información Técnica', 20, yPos);
+    
+    yPos += 15;
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100, 116, 139);
+    
+    const technicalInfo = [
+      `IP Pública: ${testResults.userIP}`,
+      `Ubicación: ${testResults.location}`,
+      `Proveedor (ISP): ${testResults.isp}`,
+      `Método de Medición: Cloudflare Infrastructure`,
+      `Protocolo: HTTPS/REST APIs`,
+      `Servidores: Múltiples endpoints globales`
+    ];
+    
+    technicalInfo.forEach((info, index) => {
+      doc.text(`• ${info}`, 25, yPos + (index * 8));
+    });
+    
+    yPos += technicalInfo.length * 8 + 20;
+    
+    // Análisis de velocidad
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Análisis de Rendimiento', 20, yPos);
+    
+    yPos += 15;
+    
+    // Determinar calidad de conexión
+    const getSpeedQuality = (speed: number, type: 'download' | 'upload') => {
+      if (type === 'download') {
+        if (speed >= 100) return { quality: 'Excelente', color: '#10b981' };
+        if (speed >= 50) return { quality: 'Muy Buena', color: '#3b82f6' };
+        if (speed >= 25) return { quality: 'Buena', color: '#f59e0b' };
+        return { quality: 'Regular', color: '#ef4444' };
+      } else {
+        if (speed >= 50) return { quality: 'Excelente', color: '#10b981' };
+        if (speed >= 25) return { quality: 'Muy Buena', color: '#3b82f6' };
+        if (speed >= 10) return { quality: 'Buena', color: '#f59e0b' };
+        return { quality: 'Regular', color: '#ef4444' };
+      }
+    };
+    
+    const downloadQuality = getSpeedQuality(testResults.downloadSpeed, 'download');
+    const uploadQuality = getSpeedQuality(testResults.uploadSpeed, 'upload');
+    
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139);
+    
+    const analysis = [
+      `Calidad de Descarga: ${downloadQuality.quality}`,
+      `Calidad de Subida: ${uploadQuality.quality}`,
+      `Latencia: ${testResults.ping < 50 ? 'Excelente' : testResults.ping < 100 ? 'Buena' : 'Regular'}`,
+      '',
+      'Recomendaciones de uso:',
+      `• Streaming HD: ${testResults.downloadSpeed >= 25 ? 'Óptimo' : 'Limitado'}`,
+      `• Videollamadas: ${testResults.uploadSpeed >= 5 ? 'Óptimo' : 'Limitado'}`,
+      `• Gaming Online: ${testResults.ping < 100 ? 'Óptimo' : 'Limitado'}`,
+      `• Trabajo Remoto: ${testResults.downloadSpeed >= 10 && testResults.uploadSpeed >= 3 ? 'Óptimo' : 'Limitado'}`
+    ];
+    
+    analysis.forEach((line, index) => {
+      if (line.startsWith('•')) {
+        doc.text(line, 30, yPos + (index * 6));
+      } else if (line === '') {
+        // Espacio en blanco
+      } else {
+        doc.text(line, 25, yPos + (index * 6));
+      }
+    });
+    
+    // Footer
+    const footerY = pageHeight - 30;
+    doc.setDrawColor(0, 255, 135);
+    doc.setLineWidth(1);
+    doc.line(20, footerY - 5, pageWidth - 20, footerY - 5);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text('SpeedTest Ultra - Desarrollado por Raul Jaime Pivet', 20, footerY);
+    doc.text('Herramienta de medición profesional con React + TypeScript', 20, footerY + 8);
+    doc.text(`GitHub: github.com/Sinsapiar1/Testdevelocidad`, pageWidth - 80, footerY);
+    
+    // Guardar PDF
+    const fileName = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.pdf`;
+    doc.save(fileName);
+    
+    return fileName;
+  }, []);
+  
+  return { generatePDFReport };
+};
+
 // Hook personalizado para el test de velocidad REAL
 const useSpeedTest = (): SpeedTestState => {
   const [isTestingDownload, setIsTestingDownload] = useState<boolean>(false);
@@ -493,7 +693,33 @@ const UltraPremiumSpeedTest: React.FC = () => {
 
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const { userIP, location, isp } = useUserInfo();
+  const { generatePDFReport } = useReportGenerator();
   const isAnyTestRunning = isTestingDownload || isTestingUpload || isTestingPing;
+
+  // Función para exportar reporte
+  const handleExportReport = async () => {
+    if (downloadSpeed === 0 && uploadSpeed === 0 && ping === 0) {
+      alert('Ejecuta primero un test de velocidad para generar el reporte');
+      return;
+    }
+
+    try {
+      const fileName = await generatePDFReport({
+        downloadSpeed,
+        uploadSpeed,
+        ping,
+        userIP,
+        location,
+        isp
+      });
+      
+      // Mostrar notificación de éxito
+      alert(`Reporte generado exitosamente: ${fileName}`);
+    } catch (error) {
+      console.error('Error generando reporte:', error);
+      alert('Error al generar el reporte. Intenta nuevamente.');
+    }
+  };
 
   // Estilos adaptativos
   const containerPadding = isMobile ? '16px' : isTablet ? '32px' : '64px';
