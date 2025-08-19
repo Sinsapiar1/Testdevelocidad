@@ -373,35 +373,64 @@ const useReportGenerator = () => {
     const fileName = `SpeedTest_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.html`;
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // Intentar usar la ventana pre-abierta (mantiene el gesto de usuario)
-    const useWindow = (win: Window | null) => {
+    // Intentar usar la ventana pre-abierta mediante navegación por Blob URL
+    const useWindowBlobNav = (win: Window | null) => {
       if (!win) return false;
       try {
-        win.document.write(htmlContent);
-        win.document.close();
-        win.focus();
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        win.location.href = url;
+        // Revocar luego de un tiempo para no romper la navegación inmediata
+        setTimeout(() => {
+          try { URL.revokeObjectURL(url); } catch {}
+        }, 30000);
         return true;
       } catch {
         return false;
       }
     };
 
-    if (useWindow(targetWindow || null)) return fileName;
+    // Alternativa: escribir documento directamente
+    const useWindowDocWrite = (win: Window | null) => {
+      if (!win) return false;
+      try {
+        win.document.open();
+        win.document.write(htmlContent);
+        win.document.close();
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
-    // Si no hay ventana pre-abierta, probar a abrir una nueva inmediatamente
-    const newWindow = window.open('', '_blank');
-    if (useWindow(newWindow)) return fileName;
+    // Si tenemos ventana pre-abierta, usarla primero (Blob URL más fiable que document.write)
+    if (useWindowBlobNav(targetWindow || null) || useWindowDocWrite(targetWindow || null)) {
+      return fileName;
+    }
 
-    // Fallback 1: navegar a data URL (suele funcionar en iOS/Android)
-    try {
-      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
-      if (isMobileDevice) {
+    // En móviles, preferir navegar en la misma pestaña para asegurar visibilidad
+    if (isMobileDevice) {
+      try {
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
         window.location.href = dataUrl;
         return fileName;
-      }
-    } catch {}
+      } catch {}
+      try {
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        window.location.href = url;
+        setTimeout(() => {
+          try { URL.revokeObjectURL(url); } catch {}
+        }, 30000);
+        return fileName;
+      } catch {}
+    }
 
-    // Fallback 2: descarga por Blob (más fiable en Android/Chrome)
+    // Escritorio: abrir nueva pestaña y usar Blob URL; si falla, document.write
+    const newWindow = window.open('', '_blank');
+    if (useWindowBlobNav(newWindow) || useWindowDocWrite(newWindow)) return fileName;
+
+    // Último recurso: descarga por Blob (más fiable en Android/Chrome)
     try {
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -850,9 +879,10 @@ const UltraPremiumSpeedTest: React.FC = () => {
       }, preOpened);
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const successMsg = isMobile
-        ? `📱 Reporte abierto/descargado: ${fileName}\nSi no se abrió automáticamente, revisa descargas o permite ventanas emergentes.`
+        ? `📱 Reporte generado: ${fileName}\nSi ves una pantalla en blanco, vuelve atrás o cambia de pestaña y regresa; algunos navegadores demoran en renderizar el HTML.`
         : `💻 Reporte generado exitosamente: ${fileName}`;
-      alert(successMsg);
+      // Mostrar aviso con un pequeño retraso para evitar interferir con el render inicial en móviles
+      setTimeout(() => alert(successMsg), 300);
     } catch (error) {
       console.error('Error generando reporte:', error);
       alert('Error al generar el reporte. Intenta nuevamente.');
